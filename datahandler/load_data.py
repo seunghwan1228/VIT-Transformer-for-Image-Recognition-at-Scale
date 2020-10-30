@@ -80,7 +80,6 @@ class DataLoader:
         revisit:
         https://stackoverflow.com/questions/40731433/understanding-tf-extract-image-patches-for-extracting-patches-from-an-image
         '''
-        # img = tf.expand_dims(img, axis=0)
         img = tf.image.extract_patches(img,
                                        sizes=[1, patch_size, patch_size, 1],
                                        strides=[1, patch_size, patch_size, 1],

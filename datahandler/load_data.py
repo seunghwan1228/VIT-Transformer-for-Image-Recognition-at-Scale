@@ -17,7 +17,7 @@ class DataLoader:
         assert self.normalize in ['standard', 'minmax'], f'Requires to be Normalize <standard or minmax> nor {self.normalize}'
 
 
-    def _download_data(self, return_info=False):
+    def download_data(self, return_info=False):
         examples, info = tfds.load(self.data_name, as_supervised=True, with_info=True)
         examples_length = len(examples)
         print(f'The Data has {examples_length}')
@@ -28,7 +28,7 @@ class DataLoader:
             return examples
 
 
-    def _split_data(self, examples):
+    def split_data(self, examples):
         if len(self.data_split) == 1:
             return examples[self.data_split[0]]
 
@@ -64,25 +64,36 @@ class DataLoader:
         def box_normalize(x):
             return x/img_height
 
+
         patchs_result = []
         for h in range(0, img_height, patch_size):
             for w in range(0, img_width, patch_size):
-
                 normalize_box = [box_normalize(h), box_normalize(w), box_normalize(h + patch_size),
                                  box_normalize(w + patch_size)]  # box = [y, x, y1, x1]
 
-                each_patch = tf.image.crop_and_resize(img, [normalize_box], box_indices=[0], method='nearest',
+                each_patch = tf.image.crop_and_resize(image=img,
+                                                      boxes=[normalize_box],
+                                                      box_indices=[0],
+                                                      method='binary',
                                                       crop_size=(patch_size, patch_size))
                 patchs_result.append(each_patch)
         return tf.concat(patchs_result, axis=0)
 
+
     #TODO: Requires to Check << tf.image.extract_patches >>
-    def _fast_patch_img(self, img, patch_size):
-        tf.image.extract_patches(img,
-                                 sizes=[1, patch_size, patch_size, 1],
-                                 strides=[1, patch_size, patch_size, 1],
-                                 rates=[1,1,1,1],
-                                 padding='VALID')
+    def _fast_patch_img(self, img, label, patch_size):
+        '''
+        The official document is unclear
+        revisit:
+        https://stackoverflow.com/questions/40731433/understanding-tf-extract-image-patches-for-extracting-patches-from-an-image
+        '''
+        img = tf.expand_dims(img, axis=0)
+        img = tf.image.extract_patches(img,
+                                       sizes=[1, patch_size, patch_size, 1],
+                                       strides=[1, patch_size, patch_size, 1],
+                                       rates=[1,1,1,1],
+                                       padding='VALID')
+        return (tf.squeeze(img), label)
 
 
     def _tf_patch_image(self, img, label, patch_size=16):
@@ -97,17 +108,59 @@ class DataLoader:
         C = 3
         P = int(patch_size)
         N = int((H * W) / (P ** 2))
-
         img_transform = tf.reshape(img, shape=(N, (P ** 2 * C)))
+
         return (img_transform, label)
 
     #TODO DataCreation Call
-    def __call__(self):
-        pass
+    def process_data(self, ds_data):
+        ds_AUTOTUNE = tf.data.experimental.AUTOTUNE
+        ds_data = ds_data.map(lambda x, y: self._resize_img(x, y, size=self.target_size), num_parallel_calls=ds_AUTOTUNE)
+        ds_data = ds_data.map(lambda x, y: self._tf_patch_image(x, y, patch_size=self.img_patch_size), num_parallel_calls=ds_AUTOTUNE)
+
+        if self.normalize == 'standard':
+            ds_data = ds_data.map(lambda x, y: self._standard_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
+        elif self.normalize == 'minmax':
+            ds_data = ds_data.map(lambda x, y: self._minmax_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
+
+        ds_data = ds_data.map(lambda x, y: self._transform_img_to_seq(x, y, patch_size=self.img_patch_size), num_parallel_calls=ds_AUTOTUNE)
+        ds_data = ds_data.batch(self.batch_size)
+        ds_data = ds_data.cache()
+        ds_data = ds_data.prefetch(ds_AUTOTUNE)
+        return ds_data
+
+    # TODO: Requires to convert to vectorized Data Processer
+    # read >> batch >> map >> cache >> map >> prefetch >> unbatch(opt)
+
+    def batch_process_data(self, ds_data):
+        # Warning: This Method extract the differenct size of images
+        ds_AUTOTUNE = tf.data.experimental.AUTOTUNE
+        ds_data = ds_data.map(lambda x, y: self._resize_img(x, y, size=self.target_size), num_parallel_calls=ds_AUTOTUNE)
+
+        if self.normalize == 'standard':
+            ds_data = ds_data.map(lambda x, y: self._standard_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
+        elif self.normalize == 'minmax':
+            ds_data = ds_data.map(lambda x, y: self._minmax_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
+
+        ds_data = ds_data.map(lambda x, y: self._fast_patch_img(x, y, patch_size=self.img_patch_size), num_parallel_calls=ds_AUTOTUNE)
+        ds_data = ds_data.map(lambda x, y: self._transform_img_to_seq(x, y, patch_size=self.img_patch_size), num_parallel_calls=ds_AUTOTUNE)
+        ds_data = ds_data.batch(self.batch_size)
+        ds_data = ds_data.cache()
+        ds_data = ds_data.prefetch(ds_AUTOTUNE)
+        return ds_data
+
 
 
 
 
 
 if __name__ == '__main__':
-    data_loader = DataLoader('cifar10', ('train', 'test'), 224, 14, 'standard')
+    data_loader = DataLoader('cifar100', ('train', 'test'), 224, 14, 'standard')
+    data = data_loader.download_data()
+
+    tmp_train, tmp_test = data_loader.split_data(data)
+    tmp_train_process = data_loader.process_data(tmp_train)
+    print(tmp_train_process)
+
+    tmp_train_fast_process = data_loader.batch_process_data(tmp_train)
+    print(tmp_train_fast_process)

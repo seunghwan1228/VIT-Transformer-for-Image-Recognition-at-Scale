@@ -123,7 +123,7 @@ class DataLoader:
 
         ds_data = ds_data.map(lambda x, y: self._transform_img_to_seq(x, y, patch_size=self.img_patch_size),
                               num_parallel_calls=ds_AUTOTUNE)
-        ds_data = ds_data.batch(self.batch_size)
+        ds_data = ds_data.batch(self.batch_size, drop_remainder=True)
         ds_data = ds_data.cache()
         ds_data = ds_data.prefetch(ds_AUTOTUNE)
         return ds_data
@@ -132,7 +132,7 @@ class DataLoader:
         # read >> batch >> map >> cache >> map >> prefetch >> unbatch(opt)
         # Warning: This Method extract the different size of images
         ds_AUTOTUNE = tf.data.experimental.AUTOTUNE
-        ds_data = ds_data.batch(self.batch_size)
+        ds_data = ds_data.batch(self.batch_size, drop_remainder=True)
         ds_data = ds_data.map(lambda x, y: self._resize_img(x, y, size=self.target_size),
                               num_parallel_calls=ds_AUTOTUNE)
         if self.normalize == 'standard':

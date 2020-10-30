@@ -74,7 +74,6 @@ class DataLoader:
                 each_patch = tf.image.crop_and_resize(image=img,
                                                       boxes=[normalize_box],
                                                       box_indices=[0],
-                                                      method='binary',
                                                       crop_size=(patch_size, patch_size))
                 patchs_result.append(each_patch)
         return tf.concat(patchs_result, axis=0)

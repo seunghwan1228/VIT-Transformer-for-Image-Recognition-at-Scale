@@ -41,7 +41,7 @@ class DataLoader:
 
     def _resize_img(self, img, label, size):
         img = tf.cast(img, tf.float32)
-        img = tf.image.resize(img, size=(size, size), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        img = tf.image.resize(img, size=[size, size], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
         return (img, label)
 
 
@@ -86,13 +86,13 @@ class DataLoader:
         revisit:
         https://stackoverflow.com/questions/40731433/understanding-tf-extract-image-patches-for-extracting-patches-from-an-image
         '''
-        img = tf.expand_dims(img, axis=0)
+        # img = tf.expand_dims(img, axis=0)
         img = tf.image.extract_patches(img,
                                        sizes=[1, patch_size, patch_size, 1],
                                        strides=[1, patch_size, patch_size, 1],
                                        rates=[1,1,1,1],
                                        padding='VALID')
-        return (tf.squeeze(img), label)
+        return (img, label)
 
 
     def _tf_patch_image(self, img, label, patch_size=16):
@@ -108,10 +108,19 @@ class DataLoader:
         P = int(patch_size)
         N = int((H * W) / (P ** 2))
         img_transform = tf.reshape(img, shape=(N, (P ** 2 * C)))
-
         return (img_transform, label)
 
-    #TODO DataCreation Call
+    def _fast_transform_img_to_seq(self, img, label, patch_size=16):
+        B = int(self.batch_size)
+        H = int(self.target_size)
+        W = int(self.target_size)
+        C = 3
+        P = int(patch_size)
+        N = int((H * W) / (P ** 2))
+        img_transform = tf.reshape(img, shape=(-1, N, (P ** 2 * C)))
+        return (img_transform, label)
+
+
     def process_data(self, ds_data):
         ds_AUTOTUNE = tf.data.experimental.AUTOTUNE
         ds_data = ds_data.map(lambda x, y: self._resize_img(x, y, size=self.target_size), num_parallel_calls=ds_AUTOTUNE)
@@ -128,23 +137,20 @@ class DataLoader:
         ds_data = ds_data.prefetch(ds_AUTOTUNE)
         return ds_data
 
-    # TODO: Requires to convert to vectorized Data Processer
-    # read >> batch >> map >> cache >> map >> prefetch >> unbatch(opt)
 
     def batch_process_data(self, ds_data):
-        # Warning: This Method extract the differenct size of images
+        # read >> batch >> map >> cache >> map >> prefetch >> unbatch(opt)
+        # Warning: This Method extract the different size of images
         ds_AUTOTUNE = tf.data.experimental.AUTOTUNE
+        ds_data = ds_data.batch(self.batch_size)
         ds_data = ds_data.map(lambda x, y: self._resize_img(x, y, size=self.target_size), num_parallel_calls=ds_AUTOTUNE)
-
         if self.normalize == 'standard':
             ds_data = ds_data.map(lambda x, y: self._standard_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
         elif self.normalize == 'minmax':
             ds_data = ds_data.map(lambda x, y: self._minmax_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
-
         ds_data = ds_data.map(lambda x, y: self._fast_patch_img(x, y, patch_size=self.img_patch_size), num_parallel_calls=ds_AUTOTUNE)
-        ds_data = ds_data.map(lambda x, y: self._transform_img_to_seq(x, y, patch_size=self.img_patch_size), num_parallel_calls=ds_AUTOTUNE)
-        ds_data = ds_data.batch(self.batch_size)
         ds_data = ds_data.cache()
+        ds_data = ds_data.map(lambda x, y: self._fast_transform_img_to_seq(x, y, patch_size=self.img_patch_size), num_parallel_calls=ds_AUTOTUNE)
         ds_data = ds_data.prefetch(ds_AUTOTUNE)
         return ds_data
 
@@ -154,7 +160,7 @@ class DataLoader:
 
 
 if __name__ == '__main__':
-    data_loader = DataLoader('cifar100', ('train', 'test'), 224, 14, 'standard')
+    data_loader = DataLoader('cifar100', ('train', 'test'), 224, 32, 'standard')
     data = data_loader.download_data()
 
     tmp_train, tmp_test = data_loader.split_data(data)
@@ -163,3 +169,10 @@ if __name__ == '__main__':
 
     tmp_train_fast_process = data_loader.batch_process_data(tmp_train)
     print(tmp_train_fast_process)
+
+
+    for i1, l1 in tmp_train_process.take(1):
+        normal_data = i1
+
+    for i2, l2 in tmp_train_fast_process.take(1):
+        fast_data = i2

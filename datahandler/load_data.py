@@ -141,9 +141,9 @@ class DataLoader:
             ds_data = ds_data.map(lambda x, y: self._minmax_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
         ds_data = ds_data.map(lambda x, y: self._fast_patch_img(x, y, patch_size=self.img_patch_size),
                               num_parallel_calls=ds_AUTOTUNE)
-        ds_data = ds_data.cache()
         ds_data = ds_data.map(lambda x, y: self._fast_transform_img_to_seq(x, y, patch_size=self.img_patch_size),
                               num_parallel_calls=ds_AUTOTUNE)
+        ds_data = ds_data.cache()
         ds_data = ds_data.prefetch(ds_AUTOTUNE)
         return ds_data
 

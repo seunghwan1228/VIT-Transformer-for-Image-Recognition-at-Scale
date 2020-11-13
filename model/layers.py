@@ -83,3 +83,31 @@ class EncoderBlock(tf.keras.layers.Layer):
         ffn_out = ffn_out + attn_out
         return ffn_out, attn_weight
 
+class VisionTransformerEncoder(tf.keras.layers.Layer):
+    def __init__(self, num_heads, model_dim, ffn_units, dropout_rate, n_layers, n_class,  **kwargs):
+        super(VisionTransformerEncoder, self).__init__(**kwargs)
+        self.num_heads = num_heads
+        self.model_dim = model_dim
+        self.ffn_units = ffn_units
+        self.dropout_rate = dropout_rate
+        self.n_layers = n_layers
+        self.n_class = n_class
+
+        self.linear_proj = tf.keras.layers.Dense(model_dim)
+        self.encoders = [EncoderBlock(num_heads, model_dim, ffn_units, dropout_rate) for _ in range(self.n_layers)]
+        self.mlp_head = FeedForward(ffn_units, model_dim)
+        self.mlp_ln = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+        self.output_layer = tf.keras.layers.Dense(n_class)
+
+    def build(self, input_shape):
+        self.pos_em = self.add_weight(shape=(1, input_shape[1]+1, self.model_dim),
+                                      initializer=tf.keras.initializers.RandomUniform(),
+                                      trainable=True,
+                                      dtype=tf.float32)
+        self.class_emb = self.add_weight(shape=(1, 1, self.model_dim),
+                                         initializer=tf.keras.initializers.RandomUniform(),
+                                         trainable=True,
+                                         dtype=tf.float32)
+    # TODO: Reqruires to build call method
+    def call(self, inputs):
+        pass

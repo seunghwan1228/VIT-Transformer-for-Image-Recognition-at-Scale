@@ -49,5 +49,7 @@ vit_model = VisionTransformer(image_size=config['image_height'],
 
 
 loss_obj = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-optimizer = tfa.optimizers.AdamW(weight_decay=0.0001, learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07)
+optimizer = tf.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999)
+
+
 

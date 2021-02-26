@@ -106,6 +106,10 @@ class DataLoader:
         img_transform = tf.reshape(img, shape=(N, (P ** 2 * C)))
         return (img_transform, label)
 
+    #TODO: REQUIRES TO ADD DATA AUGMENTATION
+    def _augment_image(self, img, label):
+        pass
+
     def _fast_transform_img_to_seq(self, img, label, patch_size=16):
         H = int(self.target_size)
         W = int(self.target_size)

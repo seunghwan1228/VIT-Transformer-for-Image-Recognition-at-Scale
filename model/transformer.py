@@ -168,4 +168,5 @@ class MLPHead(tf.keras.layers.Layer):
         x = self.mlp_inter(x)
         x = tf.nn.gelu(x)
         x = self.mlp_dropout(x)
-        return self.output_linear(x)
+        x = self.output_linear(x)
+        return tf.nn.gelu(x)

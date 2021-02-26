@@ -47,11 +47,11 @@ class DataLoader:
 
     def _resize_img(self, img, label, size):
         img = tf.cast(img, tf.float32)
-        img = tf.image.resize(img, size=[size, size], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        img = tf.image.resize(img, size=[size, size])
         return (img, label)
 
     def _standard_normalize(self, img, label):
-        img = (img / 127.5) - 1.
+        img = (img - 127.5) / 127.5
         return (img, label)
 
     def _minmax_normalize(self, img, label):
@@ -106,9 +106,46 @@ class DataLoader:
         img_transform = tf.reshape(img, shape=(N, (P ** 2 * C)))
         return (img_transform, label)
 
-    #TODO: REQUIRES TO ADD DATA AUGMENTATION
-    def _augment_image(self, img, label):
-        pass
+    def transform_seq_to_img(self, seq, patch_size=16):
+        batch_size = seq.shape[0]
+        H = int(self.target_size)
+        W = int(self.target_size)
+        C = 3
+        P = int(patch_size)
+        N = int((H * W) / (P ** 2))
+
+        seq_transform = tf.reshape(seq, shape=(-1, P, P, C))
+        return seq_transform
+
+
+    # Image Augmentation
+
+    @tf.function
+    def _random_flip_img_lr(self, img, label):
+        if tf.random.uniform(()) > 0.5:
+            img = tf.image.random_flip_left_right(img,
+                                                  seed=1228)
+        return img, label
+
+    @tf.function
+    def _random_flip_img_ud(self, img, label):
+        if tf.random.uniform(()) > 0.5:
+            img = tf.image.random_flip_up_down(img, seed=1228)
+        return img, label
+
+    @tf.function
+    def _random_crop(self, img, label):
+        if tf.random.uniform(()) > 0.5:
+            img = tf.image.resize(img, size=(self.target_size + 64,
+                                             self.target_size + 64))
+            img = tf.image.random_crop(img,
+                                       size=(self.target_size,
+                                             self.target_size,
+                                             3),
+                                       seed=1228)
+        return img, label
+
+
 
     def _fast_transform_img_to_seq(self, img, label, patch_size=16):
         H = int(self.target_size)
@@ -123,8 +160,14 @@ class DataLoader:
         ds_AUTOTUNE = tf.data.experimental.AUTOTUNE
         ds_data = ds_data.map(lambda x, y: self._resize_img(x, y, size=self.target_size),
                               num_parallel_calls=ds_AUTOTUNE)
+
+
+        ds_data = ds_data.map(lambda x, y: self._random_flip_img_lr(x, y), num_parallel_calls=ds_AUTOTUNE)
+        ds_data = ds_data.map(lambda x, y: self._random_flip_img_ud(x, y), num_parallel_calls=ds_AUTOTUNE)
+        ds_data = ds_data.map(lambda x, y: self._random_crop(x, y), num_parallel_calls=ds_AUTOTUNE)
+
         if self.patch_img:
-            ds_data = ds_data.map(lambda x, y: self._tf_patch_image(x, y, patch_size=self.img_patch_size),
+            ds_data = ds_data.map(lambda x, y: self._fast_patch_img(x, y, patch_size=self.img_patch_size),
                                   num_parallel_calls=ds_AUTOTUNE)
 
         if self.normalize == 'standard':
@@ -132,12 +175,16 @@ class DataLoader:
         elif self.normalize == 'minmax':
             ds_data = ds_data.map(lambda x, y: self._minmax_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
 
-        ds_data = ds_data.map(lambda x, y: self._transform_img_to_seq(x, y, patch_size=self.img_patch_size),
-                              num_parallel_calls=ds_AUTOTUNE)
+
+        if self.patch_img:
+
+            ds_data = ds_data.map(lambda x, y: self._transform_img_to_seq(x, y, patch_size=self.img_patch_size),
+                                  num_parallel_calls=ds_AUTOTUNE)
         ds_data = ds_data.batch(self.batch_size, drop_remainder=True)
         ds_data = ds_data.cache()
         ds_data = ds_data.prefetch(ds_AUTOTUNE)
         return ds_data
+
 
     def batch_process_data(self, ds_data):
         # read >> batch >> map >> cache >> map >> prefetch >> unbatch(opt)
@@ -146,6 +193,10 @@ class DataLoader:
         ds_data = ds_data.batch(self.batch_size, drop_remainder=True)
         ds_data = ds_data.map(lambda x, y: self._resize_img(x, y, size=self.target_size),
                               num_parallel_calls=ds_AUTOTUNE)
+
+        ds_data = ds_data.map(lambda x, y: self._random_flip_img_lr(x, y), num_parallel_calls=ds_AUTOTUNE)
+        ds_data = ds_data.map(lambda x, y: self._random_flip_img_ud(x, y), num_parallel_calls=ds_AUTOTUNE)
+        ds_data = ds_data.map(lambda x, y: self._random_crop(x, y), num_parallel_calls=ds_AUTOTUNE)
         if self.normalize == 'standard':
             ds_data = ds_data.map(lambda x, y: self._standard_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
         elif self.normalize == 'minmax':
@@ -163,23 +214,47 @@ class DataLoader:
 
 if __name__ == '__main__':
     import time
+    import matplotlib.pyplot as plt
+    import numpy as np
 
-    data_loader = DataLoader('cifar100', ('train', 'test'), 224, 32, 'standard', patch_img=False)
+    data_loader = DataLoader('cifar100', ('train', 'test'), 224, 32, 'minmax', patch_img=False)
     data = data_loader.download_data()
 
     tmp_train, tmp_test = data_loader.split_data(data)
     tmp_train_process = data_loader.process_data(tmp_train)
     print(tmp_train_process)
 
-    tmp_train_fast_process = data_loader.batch_process_data(tmp_train)
-    print(tmp_train_fast_process)
+    for i in tmp_train:
+        pass
 
-    _start = time.time()
-    for i1, l1 in tmp_train_process.take(1):
-        normal_data = i1
-    print(time.time() - _start)
+    print(i[0].shape)
+    print(i[1])
 
-    _start = time.time()
-    for i2, l2 in tmp_train_fast_process.take(1):
-        fast_data = i2
-    print(time.time() - _start)
+
+
+
+    patches = data_loader.transform_seq_to_img(i[0][0])
+
+
+    n = int(np.sqrt(patches.shape[0]))
+
+    plt.figure(figsize=(4, 4))
+    for i, patch in enumerate(patches):
+        ax = plt.subplot(n, n, i + 1)
+        plt.imshow(patch.numpy())
+        plt.axis('off')
+
+
+
+    # tmp_train_fast_process = data_loader.batch_process_data(tmp_train)
+    # print(tmp_train_fast_process)
+    #
+    # _start = time.time()
+    # for i1, l1 in tmp_train_process.take(1):
+    #     normal_data = i1
+    # print(time.time() - _start)
+    #
+    # _start = time.time()
+    # for i2, l2 in tmp_train_fast_process.take(1):
+    #     fast_data = i2
+    # print(time.time() - _start)

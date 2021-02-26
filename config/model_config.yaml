@@ -1,6 +1,8 @@
+architecture: 'vit'
+
 # Architecture Config
-use_mixed_precision: True
-batch_size: 128
+use_mixed_precision: False
+batch_size: 32
 
 normalize: "standard"
 # Requires to identify upper and lower characters
@@ -14,9 +16,7 @@ serving_version: 1
 #Visual_Attention
 patches: 16
 hidden_size: 768
-mlp_dim: 3072
-num_heads: 12
-num_layers: 12
+mlp_dim: 1024
+num_heads: 6
+num_layers: 6
 dropout_rate: 0.1
-
-activation: 'gelu'

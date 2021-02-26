@@ -50,6 +50,22 @@ def scaled_dot_attention(q, k, v, mask):
     return context_vector, attn_weights
 
 
+class ScaledDotAttention(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(ScaledDotAttention, self).__init__(**kwargs)
+
+    def call(self, q, k, v, mask):
+        scaler = tf.cast(tf.shape(k)[-1], tf.float32)
+        qk = tf.matmul(q, k, transpose_b=True)
+        scaled_qk = qk / tf.math.sqrt(scaler)
+        if mask is not None:
+            scaled_qk += (-1e9 * mask)
+        attn_weight = tf.nn.softmax(scaled_qk, axis=-1)
+        attn_logit = tf.matmul(attn_weight, v)
+        return attn_logit, attn_weight
+
+
+
 def gelu(features, approximate=False, name=None):
 
     """Compute the Gaussian Error Linear Unit (GELU) activation function.

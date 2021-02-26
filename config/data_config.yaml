@@ -1,0 +1,24 @@
+# The data_dir requires to create tfrecord
+#data_dir: "F:/nsfw_data_trim/data"
+data_dir: "/path/to/data/dir"
+# Requires to create tfrecord
+train_prefix: "training"
+valid_prefix: "testing"
+
+# Requires to store tfrecord
+data_store_dir: '/path/to/save/dir'
+
+# Model Save related
+model_save_dir: 'model_ckpt'              # ckpt file format
+
+# Image preprocessing args
+image_height: 224
+image_width: 224
+image_channel: 3
+channel_last: True
+
+# Gradio Inference
+gradio_share: True
+
+# TF Server model creator
+serving_version: 1

@@ -51,7 +51,8 @@ class FeedForwardDense(tf.keras.layers.Layer):
         x = self.feed_forward_dense(inputs)
         x = tf.nn.gelu(x)
         x = self.feed_foraward_dr(x)
-        return self.output_linear(x)
+        x = self.output_linear(x)
+        return tf.nn.gelu(x)
 
 
 class FeedForwardConv(tf.keras.layers.Layer):
@@ -67,7 +68,8 @@ class FeedForwardConv(tf.keras.layers.Layer):
         self.feed_forward_conv = tf.keras.layers.Conv2D(filters=feed_forward_units,
                                                         kernel_size=kernel_size,
                                                         stirdes=strides,
-                                                        padding=padding)
+                                                        padding=padding,
+                                                        activation='relu')
         self.feed_forward_dropout = tf.keras.layers.Dropout(dropout_rate)
         self.output_conv = tf.keras.layers.Conv2D(filters=model_dim,
                                                   kernel_size=kernel_size,

@@ -29,7 +29,6 @@ class VisionTransformer(tf.keras.Model):
         res_w/o shrink 3 - res w/ shrink 1
         res_w/o shrink 4 <= extracted patches
         """
-
         super(VisionTransformer, self).__init__(**kwargs)
         self.image_size = image_size
         self.patch_size = patch_size
@@ -83,11 +82,6 @@ class VisionTransformer(tf.keras.Model):
         # inputs: [b, seq, dim]
         batch_size = tf.shape(inputs)[0]
         x = self.cnn_root(inputs)
-        # for res_layer in self.resnet:
-        #     x = res_layer(x)
-        #
-        # for res_shirink in self.resnet_shirink:
-        #     x = res_shirink(x)
 
         for res_b_idx in range(2):
             x = self.resnet_wo_shrink[res_b_idx](x)
@@ -108,17 +102,17 @@ class VisionTransformer(tf.keras.Model):
                                   [batch_size, 1, self.model_dim])  # Broad cast [1, 1, dim] -> [B, 1, dim]
         x = tf.concat([cls_emb, x], axis=1)  # cls_emb:seq
         x = x + self.pos_emb[:, :_seq + 1, :]
+
+        enc_input = x
+
         for enc_ in self.enc_layer:
-            x = enc_(x)
-        x = self.mlp_head(x[:, 0])
+            enc_input = enc_(enc_input)
+        x = self.mlp_head(enc_input[:, 0])
         return x
 
 
 if __name__ == "__main__":
     model = VisionTransformer(224, 16, 4, 2, 128, 4, 128, 0.1, 128, 1, 5000)
-
     sample_img = tf.random.uniform(shape=(1, 224, 224, 3))
-
     tmp = model(sample_img)
-
     model.summary()

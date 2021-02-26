@@ -2,6 +2,7 @@
 use_mixed_precision: True
 batch_size: 128
 
+normalize: "standard"
 # Requires to identify upper and lower characters
 # To use custom model, set architecture as 'custom'
 learning_rate: 0.001
@@ -17,3 +18,5 @@ mlp_dim: 3072
 num_heads: 12
 num_layers: 12
 dropout_rate: 0.1
+
+activation: 'gelu'

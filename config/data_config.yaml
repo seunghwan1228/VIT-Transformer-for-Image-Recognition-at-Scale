@@ -1,15 +1,9 @@
-# The data_dir requires to create tfrecord
-#data_dir: "F:/nsfw_data_trim/data"
-data_dir: "/path/to/data/dir"
 # Requires to create tfrecord
-train_prefix: "training"
-valid_prefix: "testing"
-
-# Requires to store tfrecord
-data_store_dir: '/path/to/save/dir'
+train_prefix: "train"
+valid_prefix: "test"
 
 # Model Save related
-model_save_dir: 'model_ckpt'              # ckpt file format
+model_save_dir: 'model_ckpt' # ckpt file format
 
 # Image preprocessing args
 image_height: 224

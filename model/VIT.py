@@ -1,6 +1,7 @@
 import tensorflow as tf
-from model.transformer import TransformerConvBlock, TransformerDenseBlock, MLPHead
+
 from model.resnet import CNNRoot, ResidualUnit, ResidualUnitShirink, ResidualUnitResCNN
+from model.transformer import TransformerDenseBlock, MLPHead
 
 
 class VisionTransformer(tf.keras.Model):
@@ -8,6 +9,7 @@ class VisionTransformer(tf.keras.Model):
     This Models is not Hybrid architecture,
     requires to transform image to patch
     """
+
     def __init__(self,
                  image_size,
                  patch_size,
@@ -43,22 +45,25 @@ class VisionTransformer(tf.keras.Model):
         self.first_strides = first_strides
         self.res_block = res_block
         self.res_num_layer = 9
-        self.res_shrink_num_layer = 3 # 224 -> 14
-
+        self.res_shrink_num_layer = 3  # 224 -> 14
 
         self.pos_emb = self.add_weight(name='pos_emb', shape=(1, max_pos, model_dim))
         self.cls_emb = self.add_weight(name='cls_emb', shape=(1, 1, model_dim))
 
         self.dense_proj = tf.keras.layers.Dense(model_dim)
-        self.enc_layer = [TransformerDenseBlock(model_dim, num_heads, feed_forward_units, dropout_rate, i) for i in range(num_layers)]
+        self.enc_layer = [TransformerDenseBlock(model_dim, num_heads, feed_forward_units, dropout_rate, i) for i in
+                          range(num_layers)]
         self.mlp_head = MLPHead(mlp_size, num_classes, dropout_rate)
         self.patch_dim = (self.patch_size ** 2) * 3
 
-        self.cnn_root = CNNRoot(filters=model_dim, kernel_size=7, strides=first_strides, pool_size=3, pool_strides=2, padding='same')
-        self.resnet_wo_shrink = [ResidualUnit(filters=model_dim, strides=1, padding='same') for _ in range(self.res_num_layer)]
-        self.resnet_shrink = [ResidualUnitShirink(filters=model_dim, strides=1, padding='same') for _ in range(self.res_shrink_num_layer)]
-        self.resnet_w_shortcut = [ResidualUnitResCNN(filters=model_dim, strides=1, padding='same') for _ in range(res_block)]
-
+        self.cnn_root = CNNRoot(filters=model_dim, kernel_size=7, strides=first_strides, pool_size=3, pool_strides=2,
+                                padding='same')
+        self.resnet_wo_shrink = [ResidualUnit(filters=model_dim, strides=1, padding='same') for _ in
+                                 range(self.res_num_layer)]
+        self.resnet_shrink = [ResidualUnitShirink(filters=model_dim, strides=1, padding='same') for _ in
+                              range(self.res_shrink_num_layer)]
+        self.resnet_w_shortcut = [ResidualUnitResCNN(filters=model_dim, strides=1, padding='same') for _ in
+                                  range(res_block)]
 
     def extract_patches(self, images):
         """
@@ -87,32 +92,22 @@ class VisionTransformer(tf.keras.Model):
         for res_b_idx in range(2):
             x = self.resnet_wo_shrink[res_b_idx](x)
         x = self.resnet_shrink[0](x)
-
         for res_b in range(2, 5):
             x = self.resnet_wo_shrink[res_b](x)
         x = self.resnet_shrink[1](x)
-
-
         for res_b in range(5, 9):
             x = self.resnet_wo_shrink[res_b](x)
         x = self.resnet_shrink[2](x)
-
         for res_b in self.resnet_w_shortcut:
             x = res_b(x)
-
         # x = self.extract_patches(x)  # remove for hybrid model
-
         x = tf.reshape(x, [batch_size, -1, self.model_dim])
-
         _seq = tf.shape(x)[1]
-
         x = self.dense_proj(x)  # [b, seq, dim]
-        cls_emb = tf.broadcast_to(self.cls_emb, [batch_size, 1, self.model_dim]) # Broad cast [1, 1, dim] -> [B, 1, dim]
-
+        cls_emb = tf.broadcast_to(self.cls_emb,
+                                  [batch_size, 1, self.model_dim])  # Broad cast [1, 1, dim] -> [B, 1, dim]
         x = tf.concat([cls_emb, x], axis=1)  # cls_emb:seq
-
-        x = x + self.pos_emb[:, :_seq+1, :]
-
+        x = x + self.pos_emb[:, :_seq + 1, :]
         for enc_ in self.enc_layer:
             x = enc_(x)
         x = self.mlp_head(x[:, 0])
@@ -127,4 +122,3 @@ if __name__ == "__main__":
     tmp = model(sample_img)
 
     model.summary()
-

@@ -5,7 +5,12 @@ tfds.disable_progress_bar()
 
 
 class DataLoader:
-    def __init__(self, data_name: str, data_split: tuple, target_size: int, batch_size: int, normalize: str,
+    def __init__(self, data_name: str,
+                 data_split: tuple,
+                 target_size: int,
+                 batch_size: int,
+                 normalize: str,
+                 patch_img: bool,
                  img_patch_size=16):
         '''
         data_split should follow the order: train, validation, test
@@ -16,6 +21,7 @@ class DataLoader:
         self.normalize = normalize
         self.img_patch_size = img_patch_size
         self.data_split = data_split  # tuple
+        self.patch_img = patch_img
         assert self.normalize in ['standard',
                                   'minmax'], f'Requires to be Normalize <standard or minmax> nor {self.normalize}'
 
@@ -113,8 +119,9 @@ class DataLoader:
         ds_AUTOTUNE = tf.data.experimental.AUTOTUNE
         ds_data = ds_data.map(lambda x, y: self._resize_img(x, y, size=self.target_size),
                               num_parallel_calls=ds_AUTOTUNE)
-        ds_data = ds_data.map(lambda x, y: self._tf_patch_image(x, y, patch_size=self.img_patch_size),
-                              num_parallel_calls=ds_AUTOTUNE)
+        if self.patch_img:
+            ds_data = ds_data.map(lambda x, y: self._tf_patch_image(x, y, patch_size=self.img_patch_size),
+                                  num_parallel_calls=ds_AUTOTUNE)
 
         if self.normalize == 'standard':
             ds_data = ds_data.map(lambda x, y: self._standard_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
@@ -139,8 +146,10 @@ class DataLoader:
             ds_data = ds_data.map(lambda x, y: self._standard_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
         elif self.normalize == 'minmax':
             ds_data = ds_data.map(lambda x, y: self._minmax_normalize(x, y), num_parallel_calls=ds_AUTOTUNE)
-        ds_data = ds_data.map(lambda x, y: self._fast_patch_img(x, y, patch_size=self.img_patch_size),
-                              num_parallel_calls=ds_AUTOTUNE)
+
+        if self.patch_img:
+            ds_data = ds_data.map(lambda x, y: self._fast_patch_img(x, y, patch_size=self.img_patch_size),
+                                  num_parallel_calls=ds_AUTOTUNE)
         ds_data = ds_data.map(lambda x, y: self._fast_transform_img_to_seq(x, y, patch_size=self.img_patch_size),
                               num_parallel_calls=ds_AUTOTUNE)
         ds_data = ds_data.cache()
@@ -150,7 +159,8 @@ class DataLoader:
 
 if __name__ == '__main__':
     import time
-    data_loader = DataLoader('cifar100', ('train', 'test'), 224, 32, 'standard')
+
+    data_loader = DataLoader('cifar100', ('train', 'test'), 224, 32, 'standard', patch_img=False)
     data = data_loader.download_data()
 
     tmp_train, tmp_test = data_loader.split_data(data)

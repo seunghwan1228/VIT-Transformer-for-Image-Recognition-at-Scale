@@ -1,8 +1,7 @@
-import ruamel.yaml
 import os
-import sys
-import yaml
 from shutil import copyfile
+
+import ruamel.yaml
 
 
 class ConfigReader:
@@ -25,6 +24,7 @@ class ConfigReader:
         model_dict = self._read_config(self.model_config)
         full_dict.update(model_dict)
         return full_dict
+
 
 class PrintConfig:
     def __init__(self, config_dict):
@@ -60,8 +60,6 @@ class SaveConfig:
         print('\nCopy Config files Complete')
 
 
-
-
 if __name__ == '__main__':
     tmp_reader = ConfigReader('config')
     tmp_full_config = tmp_reader.load_config()
@@ -72,9 +70,3 @@ if __name__ == '__main__':
     config_checker.print_config()
 
     config_saver = SaveConfig('config')
-    config_saver.save_config(r'C:\Users\Owner\Documents\GitHub')
-
-
-
-
-

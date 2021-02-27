@@ -224,25 +224,6 @@ if __name__ == '__main__':
     tmp_train_process = data_loader.process_data(tmp_train)
     print(tmp_train_process)
 
-    for i in tmp_train:
-        pass
-
-    print(i[0].shape)
-    print(i[1])
-
-
-
-
-    patches = data_loader.transform_seq_to_img(i[0][0])
-
-
-    n = int(np.sqrt(patches.shape[0]))
-
-    plt.figure(figsize=(4, 4))
-    for i, patch in enumerate(patches):
-        ax = plt.subplot(n, n, i + 1)
-        plt.imshow(patch.numpy())
-        plt.axis('off')
 
 
 

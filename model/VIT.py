@@ -9,7 +9,6 @@ class VisionTransformer(tf.keras.Model):
     This Models is not Hybrid architecture,
     requires to transform image to patch
     """
-
     def __init__(self,
                  image_size,
                  patch_size,
@@ -95,8 +94,11 @@ class VisionTransformer(tf.keras.Model):
         for res_b in self.resnet_w_shortcut:
             x = res_b(x)
         # x = self.extract_patches(x)  # remove for hybrid model
+
+        tf.print(x.shape)
         x = tf.reshape(x, [batch_size, -1, self.model_dim])
         _seq = tf.shape(x)[1]
+
         x = self.dense_proj(x)  # [b, seq, dim]
         cls_emb = tf.broadcast_to(self.cls_emb,
                                   [batch_size, 1, self.model_dim])  # Broad cast [1, 1, dim] -> [B, 1, dim]
@@ -104,9 +106,9 @@ class VisionTransformer(tf.keras.Model):
         x = x + self.pos_emb[:, :_seq + 1, :]
 
         enc_input = x
-
         for enc_ in self.enc_layer:
             enc_input = enc_(enc_input)
+
         x = self.mlp_head(enc_input[:, 0])
         return x
 
@@ -114,5 +116,8 @@ class VisionTransformer(tf.keras.Model):
 if __name__ == "__main__":
     model = VisionTransformer(224, 16, 4, 2, 128, 4, 128, 0.1, 128, 1, 5000)
     sample_img = tf.random.uniform(shape=(1, 224, 224, 3))
-    tmp = model(sample_img)
     model.summary()
+
+    model.build(input_shape=(None, 224, 224, 3))
+
+    model.predict(sample_img)

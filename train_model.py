@@ -90,7 +90,8 @@ test_acc_metrics = tf.keras.metrics.SparseCategoricalAccuracy(name='Test Accurac
 ckpt = tf.train.Checkpoint(model=model,
                            optimizer=optimizer)
 ckpt_save_dir = os.path.join(config_dict['model_save_dir'],
-                             f'{config_dict["architecture"]}_{datetime.now().strftime("%Y%m%d")}')
+                             f'{config_dict["architecture"]}')
+
 os.makedirs(ckpt_save_dir, exist_ok=True)
 ckpt_manager = tf.train.CheckpointManager(ckpt,
                                           directory=ckpt_save_dir,
@@ -142,7 +143,6 @@ def valid_step(img, target, sample_weight=None):
 def train_model(dataset, epochs):
     train_data = dataset['train']
     valid_data = dataset['valid']
-
 
     print('\n\nPreparing Validation Dataset to evaluate\n\n')
     print(f'Training logs are stored at {logdir}')

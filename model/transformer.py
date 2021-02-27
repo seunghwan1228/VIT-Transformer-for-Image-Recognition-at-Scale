@@ -43,14 +43,18 @@ class FeedForwardDense(tf.keras.layers.Layer):
         self.feed_forward_units = feed_forward_units
         self.model_dim = model_dim
         self.dropout_rate = dropout_rate
+        self.feed_norm = tf.keras.layers.LayerNormalization(epsilon=1e-7)
         self.feed_forward_dense = tf.keras.layers.Dense(feed_forward_units)
         self.feed_foraward_dr = tf.keras.layers.Dropout(dropout_rate)
+        self.output_norm = tf.keras.layers.LayerNormalization(epsilon=1e-7)
         self.output_linear = tf.keras.layers.Dense(model_dim)
 
     def call(self, inputs):
-        x = self.feed_forward_dense(inputs)
+        x = self.feed_norm(inputs)
+        x = self.feed_forward_dense(x)
         x = tf.nn.gelu(x)
         x = self.feed_foraward_dr(x)
+        x = self.output_norm(x)
         x = self.output_linear(x)
         return tf.nn.gelu(x)
 

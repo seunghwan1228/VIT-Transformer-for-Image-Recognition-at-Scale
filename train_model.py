@@ -11,8 +11,8 @@ from datetime import datetime
 import tqdm
 
 
-
 set_dynamic_allocation()
+
 # Initialize Config
 config = ConfigReader('config').load_config()
 

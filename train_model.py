@@ -35,8 +35,8 @@ data = data_loader.download_data()
 train_set, test_set = data_loader.split_data(data)
 
 # Process dataset
-train_data = data_loader.batch_process_data(train_set)
-test_data = data_loader.batch_process_data(test_set)
+train_data = data_loader.process_data(train_set)
+test_data = data_loader.process_data(test_set)
 
 dataset = {'train':train_data,
            'valid':test_data}

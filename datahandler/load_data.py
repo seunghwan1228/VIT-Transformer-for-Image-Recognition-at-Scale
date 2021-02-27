@@ -220,7 +220,7 @@ if __name__ == '__main__':
     data = data_loader.download_data()
 
     tmp_train, tmp_test = data_loader.split_data(data)
-    tmp_train_process = data_loader.process_data(tmp_train)
+    tmp_train_process = data_loader.batch_process_data(tmp_train)
     print(tmp_train_process)
 
 

@@ -2,21 +2,21 @@ architecture: 'vit'
 
 # Architecture Config
 use_mixed_precision: False
-batch_size: 32
+batch_size: 256
 
 normalize: "standard"
 # Requires to identify upper and lower characters
 # To use custom model, set architecture as 'custom'
-learning_rate: 0.001
+learning_rate: 0.0001
 epochs: 100
 
 serving_version: 1
 
 
 #Visual_Attention
-patches: 16
-hidden_size: 768
+patches: 6
+hidden_size: 256
 mlp_dim: 1024
-num_heads: 6
-num_layers: 6
+num_heads: 4
+num_layers: 8
 dropout_rate: 0.1

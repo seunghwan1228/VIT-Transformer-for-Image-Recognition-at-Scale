@@ -35,8 +35,8 @@ data = data_loader.download_data()
 train_set, test_set = data_loader.split_data(data)
 
 # Process dataset
-train_data = data_loader.process_data(train_set)
-test_data = data_loader.process_data(test_set)
+train_data = data_loader.batch_process_data(train_set)
+test_data = data_loader.batch_process_data(test_set)
 
 train_data
 
@@ -45,17 +45,17 @@ dataset = {'train':train_data,
 
 
 model = VisionTransformer(image_size=config['image_height'],
-                              patch_size=config['patches'],
-                              num_layers=12,
-                              num_classes=config['dataset_classes'],
-                              model_dim=config['hidden_size'],
-                              num_heads=config['num_heads'],
-                              feed_forward_units=config['mlp_dim'],
-                              dropout_rate=config['dropout_rate'],
-                              mlp_size=config['mlp_dim'],
-                              first_strides=1,
-                              max_pos=1000,
-                              res_block=5)
+                          patch_size=config['patches'],
+                          num_layers=config['num_layers'],
+                          num_classes=config['dataset_classes'],
+                          model_dim=config['hidden_size'],
+                          num_heads=config['num_heads'],
+                          feed_forward_units=config['mlp_dim'],
+                          dropout_rate=config['dropout_rate'],
+                          mlp_size=config['mlp_dim'],
+                          first_strides=1,
+                          max_pos=1000,
+                          res_block=5)
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
     def __init__(self, d_model, warmup_steps=2000):

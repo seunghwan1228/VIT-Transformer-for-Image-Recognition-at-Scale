@@ -120,20 +120,19 @@ class DataLoader:
 
     # Image Augmentation
 
-    @tf.function
     def _random_flip_img_lr(self, img, label):
         if tf.random.uniform(()) > 0.5:
             img = tf.image.random_flip_left_right(img,
                                                   seed=1228)
         return img, label
 
-    @tf.function
+
     def _random_flip_img_ud(self, img, label):
         if tf.random.uniform(()) > 0.5:
             img = tf.image.random_flip_up_down(img, seed=1228)
         return img, label
 
-    @tf.function
+
     def _random_crop(self, img, label):
         if tf.random.uniform(()) > 0.5:
             img = tf.image.resize(img, size=(self.target_size + 64,

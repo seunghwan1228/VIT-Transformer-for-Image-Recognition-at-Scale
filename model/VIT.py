@@ -4,6 +4,7 @@ from model.resnet import CNNRoot, ResidualUnit, ResidualUnitShirink, ResidualUni
 from model.transformer import TransformerDenseBlock, MLPHead
 
 
+
 class VisionTransformer(tf.keras.Model):
     """
     This Models is not Hybrid architecture,
@@ -95,7 +96,6 @@ class VisionTransformer(tf.keras.Model):
             x = res_b(x)
         # x = self.extract_patches(x)  # remove for hybrid model
 
-        tf.print(x.shape)
         x = tf.reshape(x, [batch_size, -1, self.model_dim])
         _seq = tf.shape(x)[1]
 
@@ -116,8 +116,10 @@ class VisionTransformer(tf.keras.Model):
 if __name__ == "__main__":
     model = VisionTransformer(224, 16, 4, 2, 128, 4, 128, 0.1, 128, 1, 5000)
     sample_img = tf.random.uniform(shape=(1, 224, 224, 3))
-    model.summary()
+
 
     model.build(input_shape=(None, 224, 224, 3))
 
-    model.predict(sample_img)
+    model.summary()
+
+    tmp_result = model(sample_img)
